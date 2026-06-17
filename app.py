@@ -8,6 +8,7 @@ from groq import Groq
 import time
 import json
 import streamlit.components.v1 as components
+import random
 
 
 client = Groq(
@@ -31,6 +32,9 @@ if "pdf_processed" not in st.session_state:
 
 if "chunks" not in st.session_state:
     st.session_state.chunks = None
+
+if "chunk_pages" not in st.session_state:
+    st.session_state.chunk_pages = None
 
 if "index" not in st.session_state:
     st.session_state.index = None
@@ -93,28 +97,149 @@ st.markdown("""
 <style>
 
 [data-testid="stAppViewContainer"]{
-    background: linear-gradient(135deg,#0f172a,#1e293b,#312e81);
+    background: 
+    radial-gradient(circle at top left, rgba(56,189,248,0.18), transparent 35%),
+    radial-gradient(circle at bottom right, rgba(129,140,248,0.22), transparent 35%),
+    linear-gradient(135deg,#020617,#0f172a,#1e1b4b);
 }
 
+.block-container{
+            padding-top:3rem;
+            padding-bottom:3rem;
+            max-width:1200px;
+}
+            
 .big-title{
-    font-size:60px;
-    font-weight:bold;
-    color:white;
+    font-size:64px;
+    font-weight:900;
     text-align:center;
-    margin-bottom:10px;
+    margin-bottom:8px;
+    background:linear-gradient(90deg,#38bdf8,#a78bfa,#f0abfc);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
 }
 
 .big-subtitle{
     font-size:20px;
-    font-weight:800;
-    color:white;
+    font-weight:600;
+    color:#cbd5e1;
     text-align:center;
-    margin-bottom:50px;
+    margin-bottom:35px;
 }
-.block-container{
-    padding-top:10rem;
+            
+[data-testid="stSidebar"]{
+    background:rgba(15,23,42,0.92);
+    border-right:1px solid rgba(255,255,255,0.12);
 }
 
+.glass-card{
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.16);
+    border-radius:24px;
+    padding:24px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.25);
+    backdrop-filter:blur(18px);
+    margin-bottom:20px;
+}
+.feature-card{
+    background:rgba(255,255,255,0.09);
+    border:1px solid rgba(255,255,255,0.14);
+    border-radius:20px;
+    padding:22px;
+    text-align:center;
+    color:white;
+    min-height:130px;
+}     
+
+.stTabs [data-baseweb="tab-list"]{
+    gap:12px;
+    justify-content:center;
+}
+
+.stTabs [data-baseweb="tab"]{
+    background:rgba(255,255,255,0.08);
+    border-radius:14px;
+    color:#e5e7eb;
+    padding:12px 22px;
+    border:1px solid rgba(255,255,255,0.12);
+}
+
+.stTabs [aria-selected="true"]{
+    background:linear-gradient(90deg,#2563eb,#7c3aed);
+    color:white;
+} 
+            
+.stButton button{
+    background:linear-gradient(90deg,#2563eb,#7c3aed);
+    color:white;
+    border:none;
+    border-radius:14px;
+    padding:0.65rem 1.2rem;
+    font-weight:700;
+    box-shadow:0 10px 25px rgba(37,99,235,0.28);
+}
+
+.stButton button:hover{
+    transform:translateY(-2px);
+    box-shadow:0 14px 35px rgba(124,58,237,0.35);
+}
+
+input, textarea{
+    border-radius:14px !important;
+}
+            
+[data-testid="stFileUploader"]{
+    background:rgba(255,255,255,0.08);
+    border:1px dashed rgba(255,255,255,0.25);
+    border-radius:18px;
+    padding:16px;
+}
+
+[data-testid="stMetric"]{
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.12);
+    padding:16px;
+    border-radius:18px;
+}
+
+h1,h2,h3,p,label,span{
+    color:#f8fafc;
+}
+            
+.upload-box{
+    text-align:center;
+    padding:30px;
+    margin-bottom:25px;
+    border-radius:25px;
+    background:rgba(255,255,255,0.08);
+    border:2px dashed rgba(255,255,255,0.25);
+    backdrop-filter:blur(12px);
+}
+
+.upload-title{
+    font-size:24px;
+    font-weight:700;
+    color:white;
+    margin-bottom:10px;
+}
+
+.upload-subtitle{
+    color:#cbd5e1;
+    font-size:15px;
+}
+            
+.upload-box h3{
+    color:white;
+    font-size:24px;
+    font-weight:700;
+    margin-bottom:10px;
+}
+
+.upload-box p{
+    color:#cbd5e1;
+    font-size:15px;
+}
+            
 </style>
 """, unsafe_allow_html=True)
 
@@ -122,7 +247,20 @@ st.markdown("""
 #CHAT MEMORY
 #-----------------------------------------------------------------
 with st.sidebar:
-    st.subheader ("Chat History")
+
+    st.markdown("## 🎓 SmartScholar AI")
+    st.caption("Academic Knowledge Assistant")
+
+    st.divider()
+
+    if st.button("🔄 Reset Workspace"):
+        keys_to_keep = []
+        for key in list(st.session_state.keys()):
+            if key not in keys_to_keep:
+                del st.session_state[key]
+        st.rerun()
+
+    st.subheader("Chat History")
     if len(st.session_state.chat_history) == 0:
         st.info("No chats yet")
 
@@ -146,6 +284,53 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+st.markdown("""
+<div class="upload-box">
+    <h3>📄 Upload Your Academic Material</h3>
+    <p>Textbooks • Notes • Research Papers • Lab Manuals</p>
+</div>
+""", unsafe_allow_html=True)
+
+uploaded_file = st.file_uploader(
+    "Upload PDF",
+    type=["pdf"],
+    label_visibility="collapsed"
+)
+
+if not st.session_state.pdf_processed:
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    st.markdown("### 👋 Welcome to SmartScholar AI")
+    st.write("Upload an academic PDF and use AI to ask questions, " \
+    "prepare viva answers, generate quizzes, make flashcards,"
+    " and create chapter summaries.")
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        st.markdown('<div class="feature-card">📚<br><br><b>Upload Books</b><br>Use your own study material</div>', unsafe_allow_html=True)
+
+    with c2:
+        st.markdown('<div class="feature-card">🧠<br><br><b>Ask Questions</b><br>Get context-based answers</div>', unsafe_allow_html=True)
+
+    with c3:
+        st.markdown('<div class="feature-card">🎯<br><br><b>Quiz & Viva</b><br>Practice for exams</div>', unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    with c1:
+        st.metric("📚 Features", "5")
+
+    with c2:
+        st.metric("🧠 AI Model", "Llama 3.3")
+
+    with c3:
+        st.metric("⚡ Search", "FAISS")
+
+    with c4:
+        st.metric("🎯 Modes", "Quiz + Viva")
 
 #-----------------------------------------------------------------
 #SIDEBAR
@@ -161,17 +346,9 @@ st.markdown(
         #"Chapter Summary"
     #]
 #)
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
-    [
-        "Ask Questions",
-        "Viva",
-        "Quiz",
-        "Flashcards",
-        "Summary"
-    ]
-)
 
-uploaded_file = st.file_uploader("Upload PDF", type="pdf")
+
+
 #st.write("File uploaded:", uploaded_file is not None)
 #st.write("PDF processed:", st.session_state.pdf_processed)
 
@@ -198,21 +375,33 @@ embedding_model = load_embedding_model()
 #PDF READER
 #----------------------              
 if uploaded_file and not st.session_state.pdf_processed:
+
     with st.spinner("Reading PDF..."):
         reader = PdfReader(uploaded_file)
         text = ""
-
-        
-        for page in reader.pages:
+        page_wise_text = []
+        for page_num, page in enumerate(reader.pages, start=1):
             page_text = page.extract_text()
             if page_text:
                 cleaned = page_text.replace("\n"," ")
                 text += cleaned + " "
+                page_wise_text.append(
+                    {
+                        "page": page_num,
+                        "text": cleaned
+                    }
+                )
         #----------------------
         #CHUNK CREATER
         #----------------------
-        chunks = split_text(text)
+        chunks = []
+        chunk_pages = []
 
+        for item in page_wise_text:
+            page_chunks = split_text(item["text"])
+            for chunk in page_chunks:
+                chunks.append(chunk)
+                chunk_pages.append(item["page"])
         #----------------------
         #EMBEDDING CREATOR
         #----------------------
@@ -230,6 +419,7 @@ if uploaded_file and not st.session_state.pdf_processed:
 
         
         st.session_state.chunks = chunks
+        st.session_state.chunk_pages = chunk_pages
         st.session_state.index = index
         st.session_state.full_text = text
         st.session_state.pdf_processed = True
@@ -239,7 +429,41 @@ if uploaded_file and not st.session_state.pdf_processed:
 #QUESTION ANSWER
 #----------------------
 if st.session_state.pdf_processed:
+    st.success("✅ PDF is ready. You can now use all study tools.")
 
+    st.divider()
+
+    with st.expander("📘 How to Use SmartScholar AI"):
+
+        st.markdown("""
+        **1. Upload PDF**  
+        Upload your textbook, notes, research paper, or study material.
+
+        **2. Ask Questions**  
+        Use the Ask Questions tab to ask doubts from the uploaded PDF.
+
+        **3. Check Reference Pages**  
+        After every answer, SmartScholar AI shows the PDF pages used for generating the answer.
+
+        **4. Viva Preparation**  
+        Use Viva mode to generate viva questions or practice answers.
+
+        **5. Quiz Practice**  
+        Generate 15 MCQ-based questions with timer, hints, score, and result table.
+
+        **6. Flashcards and Summary**  
+        Use Flashcards for quick revision and Summary for exam-ready notes.
+        """)
+
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    [
+        "💬 Ask Questions",
+        "🎤 Viva",
+        "🧠 Quiz",
+        "📝 Flashcards",
+        "📖 Summary"
+    ]
+)
     def get_context(query, k=5):
         query_embedding = embedding_model.encode([query])
         query_embedding = np.array(query_embedding).astype("float32")
@@ -247,12 +471,22 @@ if st.session_state.pdf_processed:
 
         D, I = st.session_state.index.search(query_embedding, k=k)
 
-        contexts = [
-            st.session_state.chunks[i]
-            for i in I[0]
-        ]
+        contexts = []
+        source_pages = set()
 
-        return "\n\n".join(contexts)
+        for i in I[0]:
+            contexts.append(
+                st.session_state.chunks[i]
+            )
+
+            source_pages.add(
+                st.session_state.chunk_pages[i]
+            )
+
+        return{
+            "context": "\n\n".join(contexts),
+            "pages": sorted(source_pages)
+        }
         #st.write("Context created")
         #st.write(context[:300])
         #with st.expander("Retrieved Context"):
@@ -277,7 +511,9 @@ if st.session_state.pdf_processed:
         st.subheader("Ask Questions")
         query = st.text_input("ask a question from your uploaded academic material")
         if query:
-            context = get_context(query)
+            retrieval = get_context(query)
+            context = retrieval["context"]
+            source_pages = retrieval["pages"]
             is_numerical = any(char.isdigit() for char in query)
 
             if is_numerical:
@@ -336,6 +572,9 @@ if st.session_state.pdf_processed:
 
                 with st.chat_message("assistant"):
                     st.write(answer)
+                st.caption(
+                    f"📖 Reference Pages:{','.join(map(str, source_pages))}"
+                )
 
 
     with tab2:
@@ -412,7 +651,9 @@ if st.session_state.pdf_processed:
                     with st.spinner("Preparing viva questions..."):
                         questions_text = generate_answer(prompt)
 
-                    st.session_state.viva_questions = questions_text.split("\n")
+                    st.session_state.viva_questions = [q.strip()
+                                                       for q in questions_text.split("\n")
+                                                       if q.strip()]
                     st.session_state.current_viva_question = 0
 
                 if len(st.session_state.viva_questions) > 0:
@@ -481,9 +722,12 @@ if st.session_state.pdf_processed:
             st.session_state.quiz_answer_submitted = False
             context = st.session_state.full_text[:12000]
 
+            random_seed = random.randint(1000, 9999)
             prompt = f"""
             Create exactly 15 quiz questions from the academic context.
             Return ONLY valid JSON.
+            Random variation seed: {random_seed}
+
             JSON format:
             [
                 {{
@@ -503,6 +747,9 @@ if st.session_state.pdf_processed:
             - Give mixed difficulty questions.
             - correct_answer must exactly match one option.
             - Do not write anything outside JSON.
+            - Create a fresh new set of questions every time.
+            - Do not repeat the same question pattern from previous quiz attempts.
+            - Vary the order of topics, difficulty, and options.
 
             Context:
             {context}
@@ -523,7 +770,7 @@ if st.session_state.pdf_processed:
             except Exception:
                 st.error("Quiz format error. Please click Start Quiz again.")
 
-        if len(st.session_state.quiz_questions) > 0:
+        if len(st.session_state.quiz_questions )>0 and not st.session_state.quiz_completed:
 
             q_index = st.session_state.current_quiz_question
             question_data = st.session_state.quiz_questions[q_index]
@@ -680,16 +927,19 @@ if st.session_state.pdf_processed:
                         st.session_state.quiz_completed = True
                         st.rerun()
 
-            if st.session_state.quiz_completed:
-                st.success(f"Quiz completed. Your score is {st.session_state.quiz_score}/15")
-                st.subheader("Quiz Result Table")
-                st.table(st.session_state.quiz_results)
+        if st.session_state.quiz_completed:
+            st.success(f"Quiz completed. Your score is {st.session_state.quiz_score}/15")
+            st.subheader("Quiz Result Table")
+            st.table(st.session_state.quiz_results)    
 
-            if st.session_state.quiz_feedback:
-                st.write(st.session_state.quiz_feedback)
+        if st.session_state.quiz_feedback:
+            st.write(st.session_state.quiz_feedback)
 
-            if remaining_time <= 0:
-                st.warning("Time is over. Submit or move to the next question.")
+        if (
+            len(st.session_state.quiz_questions)>0
+            and not st.session_state.quiz_completed 
+            and remaining_time <= 0):
+            st.warning("Time is over. Submit or move to the next question.")   
         
     with tab4:
         st.subheader("Flashcards")
@@ -746,7 +996,54 @@ if st.session_state.pdf_processed:
                 }
             )
             st.write(answer)
+        st.divider()
 
+    with st.expander("ℹ️ About SmartScholar AI"):
+        st.markdown("""
+    **SmartScholar AI** is a Retrieval-Augmented Generation based academic assistant
+    designed to help students learn directly from their own uploaded study material.
+
+    **Main Features**
+    - Context-based Question Answering
+    - Viva Question Generation and Practice
+    - Quiz Practice with timer, hints, and result table
+    - Flashcard Generation
+    - Chapter Summary Generation
+    - Reference Page Tracking
+
+    **Technologies Used**
+    - Streamlit for web interface
+    - PyPDF for text extraction
+    - Sentence Transformers for embeddings
+    - FAISS for semantic search
+    - Groq Llama 3.3 for answer generation
+    """)
+
+    with st.expander("📊 Workspace Details"):
+        c1, c2, c3, c4 = st.columns(4)
+
+        with c1:
+            st.metric("📚 Chunks", len(st.session_state.chunks))
+
+        with c2:
+            st.metric("💬 Questions", st.session_state.ask_count)
+
+        with c3:
+            st.metric("🎤 Viva Sets", st.session_state.viva_count)
+
+        with c4:
+            st.metric("📝 Summaries", st.session_state.summary_count)
+
+    with st.expander("⚙️ How SmartScholar AI Works"):
+        st.markdown("""
+        1. **PDF Upload** — The user uploads academic material.  
+        2. **Text Extraction** — Text is extracted page-by-page using `PdfReader`.  
+        3. **Chunking** — Text is divided into smaller chunks.  
+        4. **Embeddings** — Chunks are converted into numerical vectors.  
+        5. **FAISS Search** — Relevant chunks are retrieved using semantic search.  
+        6. **LLM Generation** — Groq Llama 3.3 generates the answer.  
+        7. **Reference Pages** — The system shows source page numbers.
+        """)
 
 #----------------------
 #DEBUG
