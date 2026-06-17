@@ -290,6 +290,26 @@ st.markdown("""
     <p>Textbooks • Notes • Research Papers • Lab Manuals</p>
 </div>
 """, unsafe_allow_html=True)
+with st.expander("📘 How to Use SmartScholar AI", expanded=False):
+    st.markdown("""
+    **1. Upload PDF**  
+    Upload your textbook, notes, research paper, or study material.
+
+    **2. Ask Questions**  
+    Use the Ask Questions tab to ask doubts from the uploaded PDF.
+
+    **3. Check Reference Pages**  
+    After every answer, SmartScholar AI shows the PDF pages used for generating the answer.
+
+    **4. Viva Preparation**  
+    Use Viva mode to generate viva questions or practice answers.
+
+    **5. Quiz Practice**  
+    Generate 15 MCQ-based questions with timer, hints, score, and result table.
+
+    **6. Flashcards and Summary**  
+    Use Flashcards for quick revision and Summary for exam-ready notes.
+    """)
 
 uploaded_file = st.file_uploader(
     "Upload PDF",
@@ -298,6 +318,8 @@ uploaded_file = st.file_uploader(
 )
 
 if not st.session_state.pdf_processed:
+    
+    
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     st.markdown("### 👋 Welcome to SmartScholar AI")
     st.write("Upload an academic PDF and use AI to ask questions, " \
@@ -317,20 +339,53 @@ if not st.session_state.pdf_processed:
 
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
+    with st.expander("ℹ️ About SmartScholar AI"):
+        st.markdown("""
+    **SmartScholar AI** is a Retrieval-Augmented Generation based academic assistant
+    designed to help students learn directly from their own uploaded study material.
 
-    c1, c2, c3, c4 = st.columns(4)
+    **Main Features**
+    - Context-based Question Answering
+    - Viva Question Generation and Practice
+    - Quiz Practice with timer, hints, and result table
+    - Flashcard Generation
+    - Chapter Summary Generation
+    - Reference Page Tracking
 
-    with c1:
-        st.metric("📚 Features", "5")
+    **Technologies Used**
+    - Streamlit for web interface
+    - PyPDF for text extraction
+    - Sentence Transformers for embeddings
+    - FAISS for semantic search
+    - Groq Llama 3.3 for answer generation
+    """)
+    with st.expander("📊 Workspace Details"):
+        c1, c2, c3, c4 = st.columns(4)
 
-    with c2:
-        st.metric("🧠 AI Model", "Llama 3.3")
+        with c1:
+            st.metric("📚 Chunks", 0 if st.session_state.chunks is None else len(st.session_state.chunks))
 
-    with c3:
-        st.metric("⚡ Search", "FAISS")
+        with c2:
+            st.metric("💬 Questions", st.session_state.ask_count)
 
-    with c4:
-        st.metric("🎯 Modes", "Quiz + Viva")
+        with c3:
+            st.metric("🎤 Viva Sets", st.session_state.viva_count)
+
+        with c4:
+            st.metric("📝 Summaries", st.session_state.summary_count)
+
+    with st.expander("⚙️ How SmartScholar AI Works"):
+        st.markdown("""
+        1. **PDF Upload** — The user uploads academic material.  
+        2. **Text Extraction** — Text is extracted page-by-page using `PdfReader`.  
+        3. **Chunking** — Text is divided into smaller chunks.  
+        4. **Embeddings** — Chunks are converted into numerical vectors.  
+        5. **FAISS Search** — Relevant chunks are retrieved using semantic search.  
+        6. **LLM Generation** — Groq Llama 3.3 generates the answer.  
+        7. **Reference Pages** — The system shows source page numbers.
+        """)
+
+    
 
 #-----------------------------------------------------------------
 #SIDEBAR
@@ -425,35 +480,15 @@ if uploaded_file and not st.session_state.pdf_processed:
         st.session_state.pdf_processed = True
         
         st.success("PDF Processed Successfully")
+        st.rerun()
 #----------------------
 #QUESTION ANSWER
 #----------------------
 if st.session_state.pdf_processed:
+    st.success("✅ PDF Processed Successfully")
     st.success("✅ PDF is ready. You can now use all study tools.")
 
-    st.divider()
 
-    with st.expander("📘 How to Use SmartScholar AI"):
-
-        st.markdown("""
-        **1. Upload PDF**  
-        Upload your textbook, notes, research paper, or study material.
-
-        **2. Ask Questions**  
-        Use the Ask Questions tab to ask doubts from the uploaded PDF.
-
-        **3. Check Reference Pages**  
-        After every answer, SmartScholar AI shows the PDF pages used for generating the answer.
-
-        **4. Viva Preparation**  
-        Use Viva mode to generate viva questions or practice answers.
-
-        **5. Quiz Practice**  
-        Generate 15 MCQ-based questions with timer, hints, score, and result table.
-
-        **6. Flashcards and Summary**  
-        Use Flashcards for quick revision and Summary for exam-ready notes.
-        """)
 
     tab1, tab2, tab3, tab4, tab5 = st.tabs(
     [
@@ -464,6 +499,8 @@ if st.session_state.pdf_processed:
         "📖 Summary"
     ]
 )
+
+    st.divider()
     def get_context(query, k=5):
         query_embedding = embedding_model.encode([query])
         query_embedding = np.array(query_embedding).astype("float32")
@@ -1023,7 +1060,7 @@ if st.session_state.pdf_processed:
         c1, c2, c3, c4 = st.columns(4)
 
         with c1:
-            st.metric("📚 Chunks", len(st.session_state.chunks))
+            st.metric("📚 Chunks",0 if st.session_state.chunks is None else len(st.session_state.chunks))
 
         with c2:
             st.metric("💬 Questions", st.session_state.ask_count)
