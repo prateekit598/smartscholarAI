@@ -1181,7 +1181,7 @@ if st.session_state.pdf_processed:
         if st.button("Generate Flashcards"):
             context = st.session_state.full_text[:12000]
             prompt = f"""
-            Generate exactly 20 exam-focused flashcards from this academic context
+            Generate exactly 10 exam-focused flashcards from this academic context
 
             Return ONLY valid JSON.
             Do not write markdown.
