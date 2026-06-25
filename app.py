@@ -21,6 +21,7 @@ st.set_page_config(
     page_title="SmartScholar AI",
     layout="wide"
 )
+st.error("TESTING VERSION 8 - NEW GITHUB CODE IS RUNNING")
 #-----------------------------------------------------------------
 #SESSION STATE
 #-----------------------------------------------------------------
