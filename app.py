@@ -5,7 +5,6 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 import faiss
 from groq import Groq
-from google import genai
 from openai import OpenAI
 import requests
 import time
@@ -28,7 +27,6 @@ openrouter_api_key = get_secret("OPENROUTER_API_KEY")
 
 
 groq_client = Groq(api_key=groq_api_key) if groq_api_key else None
-gemini_client = genai.Client(api_key=gemini_api_key) if gemini_api_key else None
 openai_client = OpenAI(api_key=openai_api_key) if openai_api_key else None
 #-----------------------------------------------------------------
 #PAGE CONFIG
@@ -568,15 +566,39 @@ if st.session_state.pdf_processed:
 
 
     def call_gemini(prompt, model):
-        if gemini_client is None:
+        if gemini_api_key is None:
             raise Exception("Gemini API key missing")
 
-        response = gemini_client.models.generate_content(
-            model=model,
-            contents=prompt
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+        response = requests.post(
+            url,
+            headers={
+                "Content-Type": "application/json",
+                "x-goog-api-key": gemini_api_key
+            },
+            json={
+                "contents": [
+                    {
+                        "parts": [
+                            {
+                                "text": prompt
+                            }
+                        ]
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": 0.3,
+                    "maxOutputTokens": 1200
+                }
+            },
+            timeout=60
         )
 
-        return response.text
+        response.raise_for_status()
+        data = response.json()
+
+        return data["candidates"][0]["content"]["parts"][0]["text"]
 
 
     def call_openai(prompt, model):
@@ -652,7 +674,7 @@ if st.session_state.pdf_processed:
             },
             {
                 "provider": "Gemini",
-                "model": "gemini-1.5-flash",
+                "model": "gemini-2.0-flash",
                 "function": call_gemini
             },
             {
