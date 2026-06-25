@@ -11,6 +11,7 @@ import time
 import json
 import streamlit.components.v1 as components
 import random
+import re
 
 Total_quiz_questions = 15
 def get_secret(key):
@@ -710,7 +711,6 @@ if st.session_state.pdf_processed:
                 answer = function(prompt, model)
 
                 if answer and len(answer.strip()) > 0:
-                    st.caption(f"✅ AI Provider Used: {provider} — {model}")
                     return answer
 
             except Exception as e:
@@ -1171,6 +1171,10 @@ if st.session_state.pdf_processed:
             and remaining_time <= 0):
             st.warning("Time is over. Submit or move to the next question.")   
         
+        def format_flashcards_text(text):
+            text = re.sub(r"\s+(A\d*:|A:|Answer:)", r"\n\1", text)
+            text = re.sub(r"(Q\d*:|Q:|Question:)", r"\n\n\1", text)
+            return text.strip()
     with tab4:
         st.subheader("Flashcards")
 
@@ -1179,15 +1183,26 @@ if st.session_state.pdf_processed:
             prompt = f"""
             Generate exam-focused flashcards from this academic context
 
-            Format:
-            Q:
-            A:
+            strict Format:
+            Q1:
+            A1:
+
+            Q2:
+            A2:
+            
+            Rules:
+            - Question and answer must be on separate lines.
+            - Add one blank line after every answer.
+            - Do not write question and answer in the same line.
+            - Keep answers short and exam-focused.
+            - Use only the academic context.
 
             Context:
             {context}
             """
             with st.spinner("Generating flashcards..."):
                 answer = generate_answer(prompt)
+            answer = format_flashcards_text(answer)
             st.session_state.flashcard_count += 1
 
             st.session_state.chat_history.append(
@@ -1196,7 +1211,7 @@ if st.session_state.pdf_processed:
                 "content": answer
                 }
             )
-            st.write(answer)
+            st.markdown(answer)
     with tab5:
         st.subheader("Chapter Summary")
         if st.button("Generate Summary"):
