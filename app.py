@@ -21,7 +21,6 @@ st.set_page_config(
     page_title="SmartScholar AI",
     layout="wide"
 )
-st.error("TESTING VERSION 8 - NEW GITHUB CODE IS RUNNING")
 #-----------------------------------------------------------------
 #SESSION STATE
 #-----------------------------------------------------------------
@@ -803,11 +802,11 @@ if st.session_state.pdf_processed:
                     st.error("Quiz format error. Please click Start Quiz again.")
                     st.stop()
 
-                if len(quiz_data) < TOTAL_QUIZ_QUESTIONS:
+                if len(quiz_data) < Total_quiz_questions:
                     st.error("AI generated fewer than 15 questions. Please click Start Quiz again.")
                     st.stop()
 
-                st.session_state.quiz_questions = quiz_data[:TOTAL_QUIZ_QUESTIONS]
+                st.session_state.quiz_questions = quiz_data[:Total_quiz_questions]
 
                 st.session_state.current_quiz_question = 0
                 st.session_state.quiz_score = 0
