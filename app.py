@@ -5,15 +5,31 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 import faiss
 from groq import Groq
+from google import genai
+from openai import OpenAI
+import requests
 import time
 import json
 import streamlit.components.v1 as components
 import random
 
 Total_quiz_questions = 15
-client = Groq(
-     api_key= st.secrets["GROQ_API_KEY"]
-     )
+def get_secret(key):
+    try:
+        return st.secrets[key]
+    except Exception:
+        return None
+
+
+groq_api_key = get_secret("GROQ_API_KEY")
+gemini_api_key = get_secret("GEMINI_API_KEY")
+openai_api_key = get_secret("OPENAI_API_KEY")
+openrouter_api_key = get_secret("OPENROUTER_API_KEY")
+
+
+groq_client = Groq(api_key=groq_api_key) if groq_api_key else None
+gemini_client = genai.Client(api_key=gemini_api_key) if gemini_api_key else None
+openai_client = OpenAI(api_key=openai_api_key) if openai_api_key else None
 #-----------------------------------------------------------------
 #PAGE CONFIG
 #-----------------------------------------------------------------
@@ -532,17 +548,160 @@ if st.session_state.pdf_processed:
     #----------------------
     #AI GENERATED ANSWER 
     #----------------------
-    def generate_answer(prompt):
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+    def call_groq(prompt, model):
+        if groq_client is None:
+            raise Exception("Groq API key missing")
+
+        response = groq_client.chat.completions.create(
+            model=model,
             messages=[
                 {
                     "role": "user",
                     "content": prompt
                 }
-            ]
+            ],
+            temperature=0.3,
+            max_tokens=1200
         )
+
         return response.choices[0].message.content
+
+
+    def call_gemini(prompt, model):
+        if gemini_client is None:
+            raise Exception("Gemini API key missing")
+
+        response = gemini_client.models.generate_content(
+            model=model,
+            contents=prompt
+        )
+
+        return response.text
+
+
+    def call_openai(prompt, model):
+        if openai_client is None:
+            raise Exception("OpenAI API key missing")
+
+        response = openai_client.chat.completions.create(
+            model=model,
+            messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+            temperature=0.3,
+            max_tokens=1200
+        )
+
+        return response.choices[0].message.content
+
+
+    def call_openrouter(prompt, model):
+        if openrouter_api_key is None:
+            raise Exception("OpenRouter API key missing")
+
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {openrouter_api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": 0.3,
+                "max_tokens": 1200
+            },
+            timeout=60
+        )
+
+        response.raise_for_status()
+        data = response.json()
+
+        return data["choices"][0]["message"]["content"]
+
+
+    def generate_answer(prompt):
+        fallback_models = [
+            {
+                "provider": "Groq",
+                "model": "llama-3.3-70b-versatile",
+                "function": call_groq
+            },
+            {
+                "provider": "Groq",
+                "model": "llama-3.1-8b-instant",
+                "function": call_groq
+            },
+            {
+                "provider": "Groq",
+                "model": "gemma2-9b-it",
+                "function": call_groq
+            },
+            {
+                "provider": "Gemini",
+                "model": "gemini-2.5-flash",
+                "function": call_gemini
+            },
+            {
+                "provider": "Gemini",
+                "model": "gemini-1.5-flash",
+                "function": call_gemini
+            },
+            {
+                "provider": "OpenAI",
+                "model": "gpt-4.1-mini",
+                "function": call_openai
+            },
+            {
+                "provider": "OpenAI",
+                "model": "gpt-4o-mini",
+                "function": call_openai
+            },
+            {
+                "provider": "OpenRouter",
+                "model": "meta-llama/llama-3.1-8b-instruct",
+                "function": call_openrouter
+            },
+            {
+                "provider": "OpenRouter",
+                "model": "google/gemini-flash-1.5",
+                "function": call_openrouter
+            }
+        ]
+
+        errors = []
+
+        for item in fallback_models:
+            provider = item["provider"]
+            model = item["model"]
+            function = item["function"]
+
+            try:
+                answer = function(prompt, model)
+
+                if answer and len(answer.strip()) > 0:
+                    st.caption(f"✅ AI Provider Used: {provider} — {model}")
+                    return answer
+
+            except Exception as e:
+                errors.append(f"{provider} - {model}: {str(e)}")
+                continue
+
+        st.error("All AI providers failed. Please try again after some time.")
+    
+        with st.expander("Technical error details"):
+            for error in errors:
+                st.write(error)
+
+        st.stop()
     with tab1:
             
         st.subheader("Ask Questions")
@@ -628,7 +787,7 @@ if st.session_state.pdf_processed:
 
             if st.button("Generate Viva Questions"):
 
-                context = st.session_state.full_text[:12000]
+                context = st.session_state.full_text[:8000]
 
                 prompt = f"""
                 You are a university viva examiner.
@@ -1019,7 +1178,7 @@ if st.session_state.pdf_processed:
     with tab5:
         st.subheader("Chapter Summary")
         if st.button("Generate Summary"):
-            context = st.session_state.full_text[:20000]
+            context = st.session_state.full_text[:10000]
             prompt = f"""
             Create detailed academic notes from the chapter
             include:
