@@ -1181,15 +1181,20 @@ if st.session_state.pdf_processed:
         if st.button("Generate Flashcards"):
             context = st.session_state.full_text[:12000]
             prompt = f"""
-            Generate exam-focused flashcards from this academic context
+            Generate exactly 20 exam-focused flashcards from this academic context
 
-            strict Format:
-            Q1:
-            A1:
+            Return ONLY valid JSON.
+            Do not write markdown.
+            Do not write ```json.
+            Do not write anything outside the JSON.
 
-            Q2:
-            A2:
-            
+            JSON format:
+            [
+                {{
+                    "question": "Write a clear question here",
+                    "answer": "Write a short answer here"
+                }}
+            ]
             Rules:
             - Question and answer must be on separate lines.
             - Add one blank line after every answer.
@@ -1201,17 +1206,60 @@ if st.session_state.pdf_processed:
             {context}
             """
             with st.spinner("Generating flashcards..."):
-                answer = generate_answer(prompt)
-            answer = format_flashcards_text(answer)
-            st.session_state.flashcard_count += 1
+                flashcard_text = generate_answer(prompt)
+            try:
+                flashcard_text = flashcard_text.strip()
+                if flashcard_text.startswith("```json"):
+                    flashcard_text = flashcard_text.replace("```json", "").replace("```", "").strip()
+                elif flashcard_text.startswith("```"):
+                    flashcard_text = flashcard_text.replace("```", "").strip()
 
-            st.session_state.chat_history.append(
-                {
-                "title": f"Flashcards {st.session_state.flashcard_count}",
-                "content": answer
-                }
-            )
-            st.markdown(answer)
+                flashcards = json.loads(flashcard_text)
+
+                if not isinstance(flashcards, list):
+                    st.error("Flashcard format error. Please generate again.")
+                    st.stop()
+
+                flashcards = flashcards[:10]
+
+                valid_flashcards = []
+
+                for card in flashcards:
+                    question = card.get("question", "").strip()
+                    answer = card.get("answer", "").strip()
+
+                    if question and answer:
+                        valid_flashcards.append(
+                            {
+                                "question": question,
+                                "answer": answer
+                            }
+                        )
+
+                if len(valid_flashcards) == 0:
+                    st.error("Flashcard format error. Please generate again.")
+                    st.stop()
+
+                st.session_state.flashcard_count += 1
+
+                history_text = ""
+
+                for i, card in enumerate(valid_flashcards, start=1):
+                    st.markdown(f"### Q{i}: {card['question']}")
+                    st.markdown(f"**A{i}:** {card['answer']}")
+                    st.divider()
+
+                    history_text += f"Q{i}: {card['question']}\nA{i}: {card['answer']}\n\n"
+
+                st.session_state.chat_history.append(
+                    {
+                        "title": f"Flashcards {st.session_state.flashcard_count}",
+                        "content": history_text
+                    }
+                )
+
+            except Exception:
+                st.error("Flashcard format error. Please click Generate Flashcards again.")    
     with tab5:
         st.subheader("Chapter Summary")
         if st.button("Generate Summary"):
