@@ -11,9 +11,17 @@ import time
 import json
 import streamlit.components.v1 as components
 import random
-import re
+#-----------------------------------------------------------------
+#PAGE CONFIG
+#-----------------------------------------------------------------
+st.set_page_config(
+    page_title="SmartScholar AI",
+    layout="wide"
+)
 
 Total_quiz_questions = 15
+
+
 def get_secret(key):
     try:
         return st.secrets[key]
@@ -29,13 +37,7 @@ openrouter_api_key = get_secret("OPENROUTER_API_KEY")
 
 groq_client = Groq(api_key=groq_api_key) if groq_api_key else None
 openai_client = OpenAI(api_key=openai_api_key) if openai_api_key else None
-#-----------------------------------------------------------------
-#PAGE CONFIG
-#-----------------------------------------------------------------
-st.set_page_config(
-    page_title="SmartScholar AI",
-    layout="wide"
-)
+
 #-----------------------------------------------------------------
 #SESSION STATE
 #-----------------------------------------------------------------
@@ -1214,10 +1216,6 @@ if st.session_state.pdf_processed:
             and remaining_time <= 0):
             st.warning("Time is over. Submit or move to the next question.")   
         
-        def format_flashcards_text(text):
-            text = re.sub(r"\s+(A\d*:|A:|Answer:)", r"\n\1", text)
-            text = re.sub(r"(Q\d*:|Q:|Question:)", r"\n\n\1", text)
-            return text.strip()
     with tab4:
         st.subheader("Flashcards")
 
@@ -1407,23 +1405,39 @@ if st.session_state.pdf_processed:
 
     with st.expander("ℹ️ About SmartScholar AI"):
         st.markdown("""
-    **SmartScholar AI** is a Retrieval-Augmented Generation based academic assistant
+    **SmartScholar AI** is a domain-specific Retrieval-Augmented Generation based academic assistant
     designed to help students learn directly from their own uploaded study material.
 
+    Instead of giving general answers, the system first reads the uploaded PDF, breaks it into smaller chunks,
+    retrieves the most relevant content, and then uses AI models to generate academic responses.
+
     **Main Features**
-    - Context-based Question Answering
-    - Viva Question Generation and Practice
-    - Quiz Practice with timer, hints, and result table
-    - Flashcard Generation
-    - Chapter Summary Generation
-    - Reference Page Tracking
+    - PDF-based Question Answering
+    - Reference Page Tracking for answers
+    - Viva Question Generator
+    - Viva Practice with answer evaluation
+    - 15-question Quiz Practice with timer, hints, score, and result table
+    - JSON-based Flashcard Generation for clean revision cards
+    - Full Chapter Summary using section-wise summarization
+    - Chat History for generated outputs
+    - Multi-provider AI fallback system for better reliability
 
     **Technologies Used**
-    - Streamlit for web interface
-    - PyPDF for text extraction
-    - Sentence Transformers for embeddings
-    - FAISS for semantic search
-    - Groq Llama 3.3 for answer generation
+    - Streamlit for the web interface
+    - PyPDF for PDF text extraction
+    - LangChain RecursiveCharacterTextSplitter for text chunking
+    - Sentence Transformers for embedding generation
+    - all-MiniLM-L6-v2 embedding model
+    - NumPy for numerical array handling
+    - FAISS for vector similarity search
+    - Groq API for AI response generation
+    - Gemini REST API as an AI fallback
+    - OpenAI API as an AI fallback
+    - OpenRouter API as an AI fallback
+    - Requests library for REST API calls
+    - JSON parsing for quiz and flashcard formatting
+    - Streamlit Session State for quiz, chat, and workspace management
+    - Streamlit Secrets for secure API key handling
     """)
 
     with st.expander("📊 Workspace Details"):
