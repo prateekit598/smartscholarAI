@@ -5,3 +5,5 @@ sentence_transformers
 numpy
 faiss-cpu
 groq
+openai
+requests
