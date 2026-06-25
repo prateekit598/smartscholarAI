@@ -973,6 +973,7 @@ if st.session_state.pdf_processed:
                         st.rerun()
                     else:
                         st.session_state.quiz_completed = True
+                        st.session_state.quiz_feedback = ""
                         st.rerun()
 
         if st.session_state.quiz_completed:
@@ -980,7 +981,7 @@ if st.session_state.pdf_processed:
             st.subheader("Quiz Result Table")
             st.table(st.session_state.quiz_results[:Total_quiz_questions])    
 
-        if st.session_state.quiz_feedback:
+        if st.session_state.quiz_feedback and not st.session_state.quiz_completed:
             st.write(st.session_state.quiz_feedback)
 
         if (
@@ -1065,7 +1066,6 @@ if st.session_state.pdf_processed:
     - Sentence Transformers for embeddings
     - FAISS for semantic search
     - Groq Llama 3.3 for answer generation
-    - testing
     """)
 
     with st.expander("📊 Workspace Details"):
