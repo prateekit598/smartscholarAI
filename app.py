@@ -10,7 +10,7 @@ import json
 import streamlit.components.v1 as components
 import random
 
-
+Total_quiz_questions = 15
 client = Groq(
      api_key= st.secrets["GROQ_API_KEY"]
      )
@@ -796,7 +796,18 @@ if st.session_state.pdf_processed:
                 quiz_text = generate_answer(prompt)
 
             try:
-                st.session_state.quiz_questions = json.loads(quiz_text)
+                quiz_data = json.loads(quiz_text)
+
+                if not isinstance(quiz_data, list):
+                    st.error("Quiz format error. Please click Start Quiz again.")
+                    st.stop()
+
+                if len(quiz_data) < TOTAL_QUIZ_QUESTIONS:
+                    st.error("AI generated fewer than 15 questions. Please click Start Quiz again.")
+                    st.stop()
+
+                st.session_state.quiz_questions = quiz_data[:TOTAL_QUIZ_QUESTIONS]
+
                 st.session_state.current_quiz_question = 0
                 st.session_state.quiz_score = 0
                 st.session_state.hints_used = 0
@@ -821,7 +832,7 @@ if st.session_state.pdf_processed:
             remaining_time = time_limit - elapsed_time
 
 
-            st.markdown(f"### Question {q_index + 1} of 15")
+            st.markdown(f"### Question {q_index + 1} of {Total_quiz_questions}")
             if st.session_state.quiz_answer_submitted:
                 st.success("Answer submitted")
             else:
@@ -955,7 +966,7 @@ if st.session_state.pdf_processed:
                 if st.button("Next Question"):
                     st.session_state.quiz_answer_submitted = False
                     st.session_state.hint_shown_for_question = False
-                    if st.session_state.current_quiz_question < len(st.session_state.quiz_questions) - 1:
+                    if st.session_state.current_quiz_question < Total_quiz_questions - 1:
                         st.session_state.current_quiz_question += 1
                         st.session_state.quiz_start_time = time.time()
                         st.session_state.quiz_feedback = ""
@@ -965,9 +976,9 @@ if st.session_state.pdf_processed:
                         st.rerun()
 
         if st.session_state.quiz_completed:
-            st.success(f"Quiz completed. Your score is {st.session_state.quiz_score}/15")
+            st.success(f"Quiz completed. Your score is {st.session_state.quiz_score}/{Total_quiz_questions}")
             st.subheader("Quiz Result Table")
-            st.table(st.session_state.quiz_results)    
+            st.table(st.session_state.quiz_results[:Total_quiz_questions])    
 
         if st.session_state.quiz_feedback:
             st.write(st.session_state.quiz_feedback)
