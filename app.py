@@ -1065,6 +1065,7 @@ if st.session_state.pdf_processed:
     - Sentence Transformers for embeddings
     - FAISS for semantic search
     - Groq Llama 3.3 for answer generation
+    - testing
     """)
 
     with st.expander("📊 Workspace Details"):
@@ -1091,7 +1092,6 @@ if st.session_state.pdf_processed:
         5. **FAISS Search** — Relevant chunks are retrieved using semantic search.  
         6. **LLM Generation** — Groq Llama 3.3 generates the answer.  
         7. **Reference Pages** — The system shows source page numbers.
-        8.testing
         """)
 
 #----------------------
