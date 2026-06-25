@@ -308,22 +308,29 @@ st.markdown("""
 with st.expander("📘 How to Use SmartScholar AI", expanded=False):
     st.markdown("""
     **1. Upload PDF**  
-    Upload your textbook, notes, research paper, or study material.
+    Upload your textbook, notes, research paper, lab manual, or academic material.
 
     **2. Ask Questions**  
-    Use the Ask Questions tab to ask doubts from the uploaded PDF.
+    Use the Ask Questions tab to ask doubts from the uploaded PDF.  
+    SmartScholar AI retrieves relevant content from the document and generates an answer.
 
     **3. Check Reference Pages**  
-    After every answer, SmartScholar AI shows the PDF pages used for generating the answer.
+    For question-answering, the system shows the PDF page numbers used for generating the answer.
 
     **4. Viva Preparation**  
-    Use Viva mode to generate viva questions or practice answers.
+    Use Viva mode to generate viva questions with model answers or practice viva answers interactively.
 
     **5. Quiz Practice**  
-    Generate 15 MCQ-based questions with timer, hints, score, and result table.
+    Generate 15 MCQ-based questions with options, timer, limited hints, score tracking, and a final result table.
 
-    **6. Flashcards and Summary**  
-    Use Flashcards for quick revision and Summary for exam-ready notes.
+    **6. Flashcards**  
+    Generate clean exam-focused flashcards in question-answer format for quick revision.
+
+    **7. Full Chapter Summary**  
+    Generate section-wise and combined chapter summaries for better coverage of long PDFs.
+
+    **8. Reliable AI Response System**  
+    The app uses a fallback-based AI system so that if one AI provider fails, another provider can generate the response.
     """)
 
 uploaded_file = st.file_uploader(
@@ -356,23 +363,39 @@ if not st.session_state.pdf_processed:
     st.markdown("<br>", unsafe_allow_html=True)
     with st.expander("ℹ️ About SmartScholar AI"):
         st.markdown("""
-    **SmartScholar AI** is a Retrieval-Augmented Generation based academic assistant
+    **SmartScholar AI** is a domain-specific Retrieval-Augmented Generation based academic assistant
     designed to help students learn directly from their own uploaded study material.
 
+    Instead of giving general answers, the system first reads the uploaded PDF, breaks it into smaller chunks,
+    retrieves the most relevant content, and then uses AI models to generate academic responses.
+
     **Main Features**
-    - Context-based Question Answering
-    - Viva Question Generation and Practice
-    - Quiz Practice with timer, hints, and result table
-    - Flashcard Generation
-    - Chapter Summary Generation
-    - Reference Page Tracking
+    - PDF-based Question Answering
+    - Reference Page Tracking for answers
+    - Viva Question Generator
+    - Viva Practice with answer evaluation
+    - 15-question Quiz Practice with timer, hints, score, and result table
+    - JSON-based Flashcard Generation for clean revision cards
+    - Full Chapter Summary using section-wise summarization
+    - Chat History for generated outputs
+    - Multi-provider AI fallback system for better reliability
 
     **Technologies Used**
-    - Streamlit for web interface
-    - PyPDF for text extraction
-    - Sentence Transformers for embeddings
-    - FAISS for semantic search
-    - Groq Llama 3.3 for answer generation
+    - Streamlit for the web interface
+    - PyPDF for PDF text extraction
+    - LangChain RecursiveCharacterTextSplitter for text chunking
+    - Sentence Transformers for embedding generation
+    - all-MiniLM-L6-v2 embedding model
+    - NumPy for numerical array handling
+    - FAISS for vector similarity search
+    - Groq API for AI response generation
+    - Gemini REST API as an AI fallback
+    - OpenAI API as an AI fallback
+    - OpenRouter API as an AI fallback
+    - Requests library for REST API calls
+    - JSON parsing for quiz and flashcard formatting
+    - Streamlit Session State for quiz, chat, and workspace management
+    - Streamlit Secrets for secure API key handling
     """)
     with st.expander("📊 Workspace Details"):
         c1, c2, c3, c4 = st.columns(4)
@@ -391,14 +414,34 @@ if not st.session_state.pdf_processed:
 
     with st.expander("⚙️ How SmartScholar AI Works"):
         st.markdown("""
-        1. **PDF Upload** — The user uploads academic material.  
-        2. **Text Extraction** — Text is extracted page-by-page using `PdfReader`.  
-        3. **Chunking** — Text is divided into smaller chunks.  
-        4. **Embeddings** — Chunks are converted into numerical vectors.  
-        5. **FAISS Search** — Relevant chunks are retrieved using semantic search.  
-        6. **LLM Generation** — Groq Llama 3.3 generates the answer.  
-        7. **Reference Pages** — The system shows source page numbers.
-        """)
+    1. **PDF Upload** — The user uploads academic material such as notes, books, research papers, or lab manuals.
+
+    2. **Text Extraction** — Text is extracted page-by-page using `PdfReader` from PyPDF.
+
+    3. **Page Tracking** — Each extracted text segment is linked with its original PDF page number.
+
+    4. **Text Chunking** — The extracted text is divided into smaller overlapping chunks using `RecursiveCharacterTextSplitter`.
+
+    5. **Embedding Generation** — Each chunk is converted into a numerical vector using the `all-MiniLM-L6-v2` Sentence Transformer model.
+
+    6. **Vector Storage** — The embeddings are stored in a FAISS vector index for fast semantic search.
+
+    7. **Semantic Retrieval** — When the user asks a question, the app converts the question into an embedding and retrieves the most relevant chunks from FAISS.
+
+    8. **AI Response Generation** — The retrieved content is sent to an AI model to generate an answer based only on the uploaded material.
+
+    9. **Fallback AI System** — If one AI provider fails or reaches its limit, the app automatically tries another available provider.
+
+    10. **Quiz Generation** — The quiz system asks the AI to return structured JSON, then the app displays exactly 15 questions with timer, hints, score, and result table.
+
+    11. **Flashcard Generation** — Flashcards are generated in JSON format and displayed as clean question-answer cards.
+
+    12. **Full Summary Generation** — Long chapters are summarized section-by-section first, then combined into one complete exam-focused chapter summary.
+
+    13. **Session Management** — Streamlit Session State stores quiz progress, score, hints, chat history, uploaded PDF data, chunks, and generated outputs.
+
+    14. **Secure API Handling** — API keys are stored securely using Streamlit Secrets instead of being written directly in the code.
+    """)
 
     
 
@@ -1262,24 +1305,93 @@ if st.session_state.pdf_processed:
                 st.error("Flashcard format error. Please click Generate Flashcards again.")    
     with tab5:
         st.subheader("Chapter Summary")
-        if st.button("Generate Summary"):
-            context = st.session_state.full_text[:10000]
-            prompt = f"""
-            Create detailed academic notes from the chapter
-            include:
-            - Definations
-            - Important concepts
-            - Formulas
-            - Key points
-            - Exam tips
 
-            Chapter:
-            {context}
-            summary:
+        if st.button("Generate Full Summary"):
+            all_chunks = st.session_state.chunks
+
+            if not all_chunks or len(all_chunks) == 0:
+                st.error("No content found in the uploaded PDF.")
+                st.stop()
+
+        
+            selected_chunks = all_chunks[:40]
+
+            partial_summaries = []
+
+            with st.spinner("Reading full chapter and preparing section-wise summary..."):
+                for i in range(0, len(selected_chunks), 8):
+                    chunk_group = selected_chunks[i:i+8]
+                    section_text = "\n\n".join(chunk_group)
+
+                    section_prompt = f"""
+                    You are an academic note-maker.
+
+                    Summarize this section of the chapter in exam-focused notes.
+
+                    Rules:
+                    - Cover all important concepts in this section.
+                    - Include definitions, formulas, laws, examples, and key points if present.
+                    - Do not add outside information.
+                    - Do not skip important terms.
+                    - Keep it concise but complete.
+
+                    Section Text:
+                    {section_text}
+
+                    Section Summary:
+                    """
+
+                    section_summary = generate_answer(section_prompt)
+                    partial_summaries.append(section_summary)
+
+            combined_summary_text = "\n\n".join(partial_summaries)
+
+            final_prompt = f"""
+            You are an expert academic tutor.
+
+            Combine the section summaries into one complete chapter summary.
+
+            Format the final answer like this:
+
+            # Complete Chapter Summary
+
+            ## 1. Overview
+            Give a short overview of the chapter.
+
+            ## 2. Important Definitions
+            List important definitions.
+
+            ## 3. Key Concepts
+            Explain all key concepts in clear points.
+
+            ## 4. Important Formulas
+            List formulas with meaning of symbols wherever possible.
+
+            ## 5. Important Laws / Rules / Principles
+            Include laws, rules, and principles if present.
+
+            ## 6. Important Examples / Applications
+            Include examples or applications if present.
+
+            ## 7. Exam Tips
+            Mention what students should revise.
+
+            Rules:
+            - Use only the provided section summaries.
+            - Do not add outside information.
+            - Do not say "based on the text".
+            - Remove repetition.
+            - Make it useful for exam revision.
+
+            Section Summaries:
+            {combined_summary_text}
+
+            Final Chapter Summary:
             """
 
-            with st.spinner("Generating summary..."):
-                answer = generate_answer(prompt)
+            with st.spinner("Combining section summaries into final chapter summary..."):
+                answer = generate_answer(final_prompt)
+
             st.session_state.summary_count += 1
 
             st.session_state.chat_history.append(
@@ -1288,7 +1400,9 @@ if st.session_state.pdf_processed:
                     "content": answer
                 }
             )
-            st.write(answer)
+
+            st.markdown(answer)
+
         st.divider()
 
     with st.expander("ℹ️ About SmartScholar AI"):
@@ -1329,14 +1443,34 @@ if st.session_state.pdf_processed:
 
     with st.expander("⚙️ How SmartScholar AI Works"):
         st.markdown("""
-        1. **PDF Upload** — The user uploads academic material.  
-        2. **Text Extraction** — Text is extracted page-by-page using `PdfReader`.  
-        3. **Chunking** — Text is divided into smaller chunks.  
-        4. **Embeddings** — Chunks are converted into numerical vectors.  
-        5. **FAISS Search** — Relevant chunks are retrieved using semantic search.  
-        6. **LLM Generation** — Groq Llama 3.3 generates the answer.  
-        7. **Reference Pages** — The system shows source page numbers.
-        """)
+    1. **PDF Upload** — The user uploads academic material such as notes, books, research papers, or lab manuals.
+
+    2. **Text Extraction** — Text is extracted page-by-page using `PdfReader` from PyPDF.
+
+    3. **Page Tracking** — Each extracted text segment is linked with its original PDF page number.
+
+    4. **Text Chunking** — The extracted text is divided into smaller overlapping chunks using `RecursiveCharacterTextSplitter`.
+
+    5. **Embedding Generation** — Each chunk is converted into a numerical vector using the `all-MiniLM-L6-v2` Sentence Transformer model.
+
+    6. **Vector Storage** — The embeddings are stored in a FAISS vector index for fast semantic search.
+
+    7. **Semantic Retrieval** — When the user asks a question, the app converts the question into an embedding and retrieves the most relevant chunks from FAISS.
+
+    8. **AI Response Generation** — The retrieved content is sent to an AI model to generate an answer based only on the uploaded material.
+
+    9. **Fallback AI System** — If one AI provider fails or reaches its limit, the app automatically tries another available provider.
+
+    10. **Quiz Generation** — The quiz system asks the AI to return structured JSON, then the app displays exactly 15 questions with timer, hints, score, and result table.
+
+    11. **Flashcard Generation** — Flashcards are generated in JSON format and displayed as clean question-answer cards.
+
+    12. **Full Summary Generation** — Long chapters are summarized section-by-section first, then combined into one complete exam-focused chapter summary.
+
+    13. **Session Management** — Streamlit Session State stores quiz progress, score, hints, chat history, uploaded PDF data, chunks, and generated outputs.
+
+    14. **Secure API Handling** — API keys are stored securely using Streamlit Secrets instead of being written directly in the code.
+    """)
 
 #----------------------
 #DEBUG
